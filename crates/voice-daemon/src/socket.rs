@@ -123,7 +123,10 @@ async fn dispatch(
         .params
         .get("wait")
         .and_then(|v| v.as_bool())
-        .unwrap_or(false);
+        // File synthesis clients normally need completion semantics so the
+        // output path exists when the CLI exits; keep speak/listen defaults
+        // unchanged unless callers opt in with wait=true.
+        .unwrap_or(req.method == "synthesize");
 
     // Build the voice request from params
     let voice_req = match req.method.as_str() {
@@ -140,6 +143,28 @@ async fn dispatch(
             let speed = req.params.get("speed").and_then(|v| v.as_f64());
             VoiceRequest::Speak {
                 text: text.to_string(),
+                voice,
+                speed,
+            }
+        }
+        "synthesize" => {
+            let text = req.params.get("text").and_then(|v| v.as_str());
+            let Some(text) = text else {
+                return Response::error(req.id, rpc::INVALID_PARAMS, "Missing param: text");
+            };
+            let output_path = req.params.get("output_path").and_then(|v| v.as_str());
+            let Some(output_path) = output_path else {
+                return Response::error(req.id, rpc::INVALID_PARAMS, "Missing param: output_path");
+            };
+            let voice = req
+                .params
+                .get("voice")
+                .and_then(|v| v.as_str())
+                .map(String::from);
+            let speed = req.params.get("speed").and_then(|v| v.as_f64());
+            VoiceRequest::Synthesize {
+                text: text.to_string(),
+                output_path: output_path.to_string(),
                 voice,
                 speed,
             }
@@ -321,6 +346,16 @@ async fn dispatch(
             VoiceRequest::Speak { text, voice, speed } => {
                 queue
                     .enqueue_speak(client_id.to_string(), text, voice, speed)
+                    .await
+            }
+            VoiceRequest::Synthesize {
+                text,
+                output_path,
+                voice,
+                speed,
+            } => {
+                queue
+                    .enqueue_synthesize(client_id.to_string(), text, output_path, voice, speed)
                     .await
             }
             VoiceRequest::Listen { max_duration_ms } => {
