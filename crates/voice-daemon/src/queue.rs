@@ -13,6 +13,17 @@ pub enum VoiceRequest {
         voice: Option<String>,
         speed: Option<f64>,
     },
+    /// Generate speech audio into a file without opening audio output.
+    ///
+    /// This is the daemon path Hermes command-TTS wants: keep the Kokoro
+    /// model resident in the daemon, submit text over the Unix socket, and
+    /// return after the daemon has written the requested WAV file.
+    Synthesize {
+        text: String,
+        output_path: String,
+        voice: Option<String>,
+        speed: Option<f64>,
+    },
     Listen {
         max_duration_ms: Option<u64>,
     },
@@ -26,6 +37,7 @@ impl VoiceRequest {
     pub fn method(&self) -> &str {
         match self {
             Self::Speak { .. } => "speak",
+            Self::Synthesize { .. } => "synthesize",
             Self::Listen { .. } => "listen",
             Self::Converse { .. } => "converse",
         }
@@ -33,7 +45,9 @@ impl VoiceRequest {
 
     pub fn text_preview(&self) -> Option<String> {
         match self {
-            Self::Speak { text, .. } | Self::Converse { text, .. } => {
+            Self::Speak { text, .. }
+            | Self::Synthesize { text, .. }
+            | Self::Converse { text, .. } => {
                 let preview: String = text.chars().take(80).collect();
                 Some(preview)
             }
@@ -109,6 +123,26 @@ impl RequestQueue {
     ) -> String {
         self.enqueue(client_id, VoiceRequest::Speak { text, voice, speed })
             .await
+    }
+
+    pub async fn enqueue_synthesize(
+        &self,
+        client_id: String,
+        text: String,
+        output_path: String,
+        voice: Option<String>,
+        speed: Option<f64>,
+    ) -> String {
+        self.enqueue(
+            client_id,
+            VoiceRequest::Synthesize {
+                text,
+                output_path,
+                voice,
+                speed,
+            },
+        )
+        .await
     }
 
     pub async fn enqueue_listen(&self, client_id: String, max_duration_ms: Option<u64>) -> String {
@@ -304,6 +338,7 @@ impl RequestQueue {
         let status = match &current {
             Some(item) => match item.method.as_str() {
                 "speak" => "speaking",
+                "synthesize" => "synthesizing",
                 "listen" => "listening",
                 "converse" => "conversing",
                 _ => "idle",

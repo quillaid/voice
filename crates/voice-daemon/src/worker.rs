@@ -63,6 +63,7 @@ pub async fn run(
     queue: Arc<RequestQueue>,
     config: Arc<crate::config::DaemonConfig>,
     automerge: Arc<tokio::sync::Mutex<crate::automerge_state::AutomergeState>>,
+    tts_only: bool,
 ) {
     eprintln!("voiced: loading TTS model...");
     let start = Instant::now();
@@ -86,29 +87,37 @@ pub async fn run(
         start.elapsed().as_secs_f32()
     );
 
-    // Eagerly load STT model — daemon is long-lived, pay the cost once
-    eprintln!("voiced: loading STT model...");
-    let stt_start = Instant::now();
-    let stt: Arc<Mutex<Option<voice_stt::WhisperModel>>> = match tokio::task::spawn_blocking(|| {
-        voice_stt::load_model(STT_REPO).map_err(|e| format!("stt: {}", e))
-    })
-    .await
-    {
-        Ok(Ok(model)) => {
-            eprintln!(
-                "voiced: STT model loaded in {:.1}s",
-                stt_start.elapsed().as_secs_f32()
-            );
-            Arc::new(Mutex::new(Some(model)))
-        }
-        Ok(Err(e)) => {
-            eprintln!("voiced: STT model failed to load: {}", e);
-            eprintln!("voiced: listen/converse will be unavailable");
-            Arc::new(Mutex::new(None))
-        }
-        Err(e) => {
-            eprintln!("voiced: STT init panicked: {}", e);
-            Arc::new(Mutex::new(None))
+    // In normal interactive mode, eagerly load STT so listen/converse is warm.
+    // TTS-only mode is intended for command-TTS/Hermes synthesis workers and
+    // avoids paying the Whisper load cost or touching microphone/audio input
+    // until an STT operation is actually requested.
+    let stt: Arc<Mutex<Option<voice_stt::WhisperModel>>> = if tts_only {
+        eprintln!("voiced: skipping eager STT load (TTS-only mode)");
+        Arc::new(Mutex::new(None))
+    } else {
+        eprintln!("voiced: loading STT model...");
+        let stt_start = Instant::now();
+        match tokio::task::spawn_blocking(|| {
+            voice_stt::load_model(STT_REPO).map_err(|e| format!("stt: {}", e))
+        })
+        .await
+        {
+            Ok(Ok(model)) => {
+                eprintln!(
+                    "voiced: STT model loaded in {:.1}s",
+                    stt_start.elapsed().as_secs_f32()
+                );
+                Arc::new(Mutex::new(Some(model)))
+            }
+            Ok(Err(e)) => {
+                eprintln!("voiced: STT model failed to load: {}", e);
+                eprintln!("voiced: listen/converse will be unavailable");
+                Arc::new(Mutex::new(None))
+            }
+            Err(e) => {
+                eprintln!("voiced: STT init panicked: {}", e);
+                Arc::new(Mutex::new(None))
+            }
         }
     };
 
@@ -155,6 +164,40 @@ pub async fn run(
                         }
                         Err(e) => {
                             eprintln!("voiced: speak panicked: {}", e);
+                            queue.fail(format!("panic: {}", e)).await;
+                            sync_automerge(&queue, &automerge).await;
+                        }
+                    }
+                }
+                VoiceRequest::Synthesize {
+                    text,
+                    output_path,
+                    voice,
+                    speed,
+                } => {
+                    let text = text.clone();
+                    let output_path = output_path.clone();
+                    let voice = voice.clone().or_else(|| Some(config.get_voice_name()));
+                    let speed = speed.or_else(|| Some(config.get_speed() as f64));
+                    let tts = tts.clone();
+
+                    let result = tokio::task::spawn_blocking(move || {
+                        synthesize_to_file(&tts, &text, &output_path, voice.as_deref(), speed)
+                    })
+                    .await;
+
+                    match result {
+                        Ok(Ok(msg)) => {
+                            queue.complete(Some(msg), None).await;
+                            sync_automerge(&queue, &automerge).await;
+                        }
+                        Ok(Err(e)) => {
+                            eprintln!("voiced: synthesize error: {}", e);
+                            queue.fail(e).await;
+                            sync_automerge(&queue, &automerge).await;
+                        }
+                        Err(e) => {
+                            eprintln!("voiced: synthesize panicked: {}", e);
                             queue.fail(format!("panic: {}", e)).await;
                             sync_automerge(&queue, &automerge).await;
                         }
@@ -340,6 +383,71 @@ fn speak(
     Ok(serde_json::json!({
         "duration_ms": duration_ms,
         "chunks": chunks.len(),
+    })
+    .to_string())
+}
+
+fn synthesize_to_file(
+    tts: &Arc<Mutex<TtsState>>,
+    text: &str,
+    output_path: &str,
+    voice_name: Option<&str>,
+    speed: Option<f64>,
+) -> Result<String, String> {
+    let chunks =
+        voice_g2p::text_to_phoneme_chunks(text).map_err(|e| format!("G2P error: {}", e))?;
+
+    let started = Instant::now();
+    let mut all_samples: Vec<f32> = Vec::new();
+    let sample_rate: u32;
+    let speed_used: f32;
+
+    {
+        let mut state = tts.lock().map_err(|e| format!("lock: {}", e))?;
+        speed_used = speed.map(|s| s as f32).unwrap_or(state.speed);
+        sample_rate = state.sample_rate;
+
+        for (i, phonemes) in chunks.iter().enumerate() {
+            if phonemes.is_empty() {
+                continue;
+            }
+
+            let voice = if let Some(name) = voice_name {
+                state.get_voice(name)?.clone()
+            } else {
+                state.default_voice.clone()
+            };
+
+            match voice_tts::generate(&mut state.model, phonemes, &voice, speed_used) {
+                Ok(audio) => {
+                    all_samples.extend_from_slice(&audio);
+                    if chunks.len() > 1 {
+                        eprintln!("voiced:   chunk {}/{} synthesized", i + 1, chunks.len());
+                    }
+                }
+                Err(e) => return Err(format!("generate chunk {}: {}", i + 1, e)),
+            }
+        }
+    }
+
+    let path = std::path::Path::new(output_path);
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("create output dir {}: {}", parent.display(), e))?;
+        }
+    }
+
+    audio_recorder::save_wav(path, &all_samples, sample_rate)?;
+
+    Ok(serde_json::json!({
+        "output_path": output_path,
+        "duration_ms": started.elapsed().as_millis() as u64,
+        "chunks": chunks.len(),
+        "samples": all_samples.len(),
+        "sample_rate": sample_rate,
+        "voice": voice_name,
+        "speed": speed_used,
     })
     .to_string())
 }
@@ -578,6 +686,35 @@ async fn run_simulated(
                         .await;
                     sync_automerge(&queue, &automerge).await;
                 }
+                VoiceRequest::Synthesize {
+                    text, output_path, ..
+                } => {
+                    let words = text.split_whitespace().count();
+                    let ms = (words as u64 * 50).max(100);
+                    tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
+                    let path = std::path::Path::new(output_path);
+                    if let Some(parent) = path.parent() {
+                        let _ = std::fs::create_dir_all(parent);
+                    }
+                    let _ = audio_recorder::save_wav(path, &[], 24_000);
+                    queue
+                        .complete(
+                            Some(
+                                serde_json::json!({
+                                    "output_path": output_path,
+                                    "duration_ms": ms,
+                                    "chunks": 0,
+                                    "samples": 0,
+                                    "sample_rate": 24000,
+                                    "simulated": true,
+                                })
+                                .to_string(),
+                            ),
+                            None,
+                        )
+                        .await;
+                    sync_automerge(&queue, &automerge).await;
+                }
                 VoiceRequest::Listen { .. } => {
                     tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
                     queue
@@ -604,6 +741,12 @@ fn short(req: &VoiceRequest) -> String {
         VoiceRequest::Speak { text, .. } => {
             let preview: String = text.chars().take(50).collect();
             format!("speak: {}", preview)
+        }
+        VoiceRequest::Synthesize {
+            text, output_path, ..
+        } => {
+            let preview: String = text.chars().take(50).collect();
+            format!("synthesize: {} -> {}", preview, output_path)
         }
         VoiceRequest::Listen { max_duration_ms } => {
             format!("listen ({}ms)", max_duration_ms.unwrap_or(30000))

@@ -573,8 +573,10 @@ fn run_mcp(serve_args: ServeArgs) {
 }
 
 fn run_say(say_args: SayArgs) {
-    // If the daemon is running and we're not writing to a file, delegate to it.
-    if say_args.output.is_none() {
+    // If the daemon is running, delegate normal playback and file synthesis to it.
+    // `--phonemes` stays local for now because the daemon RPC accepts text and
+    // runs its own G2P pipeline.
+    if say_args.phonemes.is_none() {
         if let Some(mut daemon) = voice_protocol::client::DaemonClient::connect() {
             let text = match resolve_text(&say_args) {
                 Ok(t) => t,
@@ -597,8 +599,36 @@ fn run_say(say_args: SayArgs) {
             } else {
                 apply_substitutions(&text, &subs)
             };
-            match daemon.speak(&text, Some(&say_args.voice), Some(say_args.speed as f64)) {
-                Ok(_resp) => return,
+
+            let daemon_result = if let Some(output_path) = &say_args.output {
+                daemon.synthesize(
+                    &text,
+                    &output_path.to_string_lossy(),
+                    Some(&say_args.voice),
+                    Some(say_args.speed as f64),
+                )
+            } else {
+                daemon.speak(&text, Some(&say_args.voice), Some(say_args.speed as f64))
+            };
+
+            match daemon_result {
+                Ok(resp) if resp.error.is_none() => {
+                    let failed = resp
+                        .result
+                        .as_ref()
+                        .and_then(|r| r.get("status"))
+                        .and_then(|s| s.as_str())
+                        == Some("failed");
+                    if !failed {
+                        return;
+                    }
+                    eprintln!("Daemon synthesis failed, falling back to local");
+                }
+                Ok(resp) => {
+                    if let Some(err) = resp.error {
+                        eprintln!("Daemon error: {}, falling back to local", err.message);
+                    }
+                }
                 Err(e) => {
                     eprintln!("Daemon error: {e}, falling back to local");
                 }

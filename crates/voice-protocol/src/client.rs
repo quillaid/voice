@@ -104,6 +104,28 @@ impl DaemonClient {
         self.call("speak", params)
     }
 
+    /// Convenience: synthesize text to a WAV file via the daemon and wait for completion.
+    pub fn synthesize(
+        &mut self,
+        text: &str,
+        output_path: &str,
+        voice: Option<&str>,
+        speed: Option<f64>,
+    ) -> Result<Response, String> {
+        let mut params = serde_json::json!({
+            "text": text,
+            "output_path": output_path,
+            "wait": true,
+        });
+        if let Some(v) = voice {
+            params["voice"] = Value::String(v.to_string());
+        }
+        if let Some(s) = speed {
+            params["speed"] = serde_json::json!(s);
+        }
+        self.call("synthesize", params)
+    }
+
     /// Convenience: send a listen request. Blocks until transcription completes.
     pub fn listen(&mut self, max_duration_ms: Option<u64>) -> Result<Response, String> {
         let mut params = serde_json::json!({"wait": true});
