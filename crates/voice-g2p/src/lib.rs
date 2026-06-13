@@ -75,20 +75,26 @@ impl G2P {
     fn builtin_overrides() -> HashMap<String, String> {
         const ENTRIES: &[(&str, &str)] = &[
             ("acl", "ˈA sˈi ˈɛl"),
+            ("ai", "ˈA ˈI"),
             ("api", "ˈA pˈi ˌI"),
             ("apis", "ˈA pˈi ˈIz"),
+            ("arpabet", "ˈɑɹpə bˌɛt"),
+            ("asr", "ˈA ˈɛs ˈɑɹ"),
             ("automerge", "ˈɔTO mˈɜɹʤ"),
             ("automunge", "ˈɔTO mˈʌnʤ"),
             ("aws", "ˈA dˈʌbᵊlju ˈɛs"),
             ("anywidget", "ˈɛni wˌɪʤət"),
+            ("bert", "bˈɜɹt"),
             ("bilstm", "bˈI ˈɛl ˈɛs tˈi ˈɛm"),
             ("byoc", "bˈi wˈI ˈO sˈi"),
             ("chatgpt", "ʧˈæt ʤˈi pˈi tˈi"),
             ("cli", "sˈi ˈɛl ˌI"),
             ("clis", "sˈi ˈɛl ˈIz"),
             ("cloudflare", "klˈWd flˈɛɹ"),
+            ("cmudict", "sˈi ˈɛm jˈu dˌɪkt"),
             ("coreaudio", "kˈɔɹ ˈɔdiO"),
             ("coreml", "kˈɔɹ ˈɛm ˈɛl"),
+            ("cpu", "sˈi pˈi jˈu"),
             ("cpal", "sˈi pˈi ˈA ˈɛl"),
             ("crdt", "sˈi ˈɑɹ dˈi tˈi"),
             ("crdts", "sˈi ˈɑɹ dˈi tˈiz"),
@@ -105,15 +111,18 @@ impl G2P {
             ("demuxing", "dˌimˈʌksɪŋ"),
             ("dft", "dˈi ˈɛf tˈi"),
             ("dtls", "dˈi tˈi ˈɛl ˈɛs"),
+            ("dtype", "dˈi tˈIp"),
             ("duckdb", "dˈʌk dˈi bˈi"),
             ("esbuild", "ˈi ˈɛs bˌɪld"),
             ("eslint", "ˈi ˈɛs lˌɪnt"),
             ("espeak", "ˈi spˌik"),
             ("fastapi", "fˈæst ˈA pˈi ˌI"),
+            ("fft", "ˈɛf ˈɛf tˈi"),
             ("flac", "flˈæk"),
             ("gguf", "ʤˈi ʤˈi jˈu ˈɛf"),
             ("grpc", "ʤˈi ˈɑɹ pˈi sˈi"),
             ("gpt", "ʤˈi pˈi tˈi"),
+            ("gpu", "ʤˈi pˈi jˈu"),
             ("http", "ˈAʧ tˈi tˈi pˈi"),
             ("https", "ˈAʧ tˈi tˈi pˈi ˈɛs"),
             ("html", "ˈAʧ tˈi ˈɛm ˈɛl"),
@@ -123,6 +132,7 @@ impl G2P {
             ("idb", "ˌI dˈi bˈi"),
             ("iframe", "ˌI fɹˌAm"),
             ("ios", "ˈI ˈO ˈɛs"),
+            ("ipa", "ˌI pˈi ˈA"),
             ("indexeddb", "ˈɪndɛkst dˈi bˈi"),
             ("ipc", "ˌI pˈi sˈi"),
             ("ipykernel", "ˈI pˈI kˌɜɹnᵊl"),
@@ -143,8 +153,13 @@ impl G2P {
             ("kokoro-82m", "kˈOkəɹO ˈATi tˈu ˈɛm"),
             ("kubernetes", "kˌubəɹnˈɛtiz"),
             ("kubectl", "kjˈub kˈʌdᵊl"),
+            ("kv", "kˈA vˈi"),
+            ("kv-cache", "kˈA vˈi kˌæʃ"),
+            ("kv-caching", "kˈA vˈi kˌæʃɪŋ"),
             ("latex", "lˈA tˌɛk"),
             ("lfs", "ˈɛl ˈɛf ˈɛs"),
+            ("llm", "ˈɛl ˈɛl ˈɛm"),
+            ("llms", "ˈɛl ˈɛl ˈɛmz"),
             ("lstm", "ˈɛl ˈɛs tˈi ˈɛm"),
             ("macos", "mˈæk ˈO ˈɛs"),
             ("matplotlib", "mˈæt plˌɑt lˌɪb"),
@@ -155,6 +170,7 @@ impl G2P {
             ("micropip", "mˈIkɹO pˌɪp"),
             ("mimebundle", "mˈIm bˌʌndᵊl"),
             ("mlx", "ˈɛm ˈɛl ˈɛks"),
+            ("ml", "ˈɛm ˈɛl"),
             ("mmap", "ˈɛm mˌæp"),
             ("msw", "ˈɛm ˈɛs dˈʌbᵊlju"),
             ("mypy", "mˈI pˌI"),
@@ -165,6 +181,7 @@ impl G2P {
             ("next.js", "nˈɛkst ʤˈA ˈɛs"),
             ("nextjs", "nˈɛkst ʤˈA ˈɛs"),
             ("nginx", "ˈɛnʤən ˌɛks"),
+            ("nlp", "ˈɛn ˈɛl pˈi"),
             ("node.js", "nˈOd ʤˈA ˈɛs"),
             ("nodejs", "nˈOd ʤˈA ˈɛs"),
             ("nteract", "ˈɛntəɹˌækt"),
@@ -177,9 +194,12 @@ impl G2P {
             ("openai-codex", "ˌOpᵊn ˈAˌI kˈOdˌɛks"),
             ("openapi", "ˈOpᵊn ˈA pˈi ˌI"),
             ("opfs", "ˈO pˈi ˈɛf ˈɛs"),
+            ("oov", "ˈO ˈO vˈi"),
             ("outerbounds", "ˈWTəɹ bˈWndz"),
             ("outputidchanges", "ˈWtpˌʊt ˌI dˌi ʧˈAnʤᵻz"),
+            ("plbert", "pˈi ˈɛl bˈɜɹt"),
             ("pnpm", "pˈi ˈɛn pˈi ˈɛm"),
+            ("pos", "pˈi ˈO ˈɛs"),
             ("postgres", "pˈOstɡɹɛs"),
             ("postgresql", "pˈOst ɡɹˈɛs kjˈu ˈɛl"),
             ("pcm", "pˈi sˈi ˈɛm"),
@@ -227,6 +247,7 @@ impl G2P {
             ("ssr", "ˈɛs ˈɛs ˈɑɹ"),
             ("stft", "ˈɛs tˈi ˈɛf tˈi"),
             ("stt", "ˈɛs tˈi tˈi"),
+            ("styletts", "stˈIl tˈi tˈi ˈɛs"),
             ("supabase", "sˈupə bˌAs"),
             ("swc", "ˈɛs dˈʌbᵊlju sˈi"),
             ("tailwindcss", "tˈAl wˈɪnd sˈi ˈɛs ˈɛs"),
@@ -1008,19 +1029,25 @@ mod tests {
         let g2p = G2P::new();
         let pronounces = |text: &str| g2p.convert(text).unwrap().trim().to_string();
         assert_eq!(pronounces("ACL"), "ˈA sˈi ˈɛl");
+        assert_eq!(pronounces("AI"), "ˈA ˈI");
         assert_eq!(pronounces("API"), "ˈA pˈi ˌI");
         assert_eq!(pronounces("APIs"), "ˈA pˈi ˈIz");
+        assert_eq!(pronounces("ARPABET"), "ˈɑɹpə bˌɛt");
+        assert_eq!(pronounces("ASR"), "ˈA ˈɛs ˈɑɹ");
         assert_eq!(pronounces("anywidget"), "ˈɛni wˌɪʤət");
         assert_eq!(pronounces("Automerge"), "ˈɔTO mˈɜɹʤ");
         assert_eq!(pronounces("automunge"), "ˈɔTO mˈʌnʤ");
         assert_eq!(pronounces("AWS"), "ˈA dˈʌbᵊlju ˈɛs");
+        assert_eq!(pronounces("BERT"), "bˈɜɹt");
         assert_eq!(pronounces("BiLSTM"), "bˈI ˈɛl ˈɛs tˈi ˈɛm");
         assert_eq!(pronounces("BYOC"), "bˈi wˈI ˈO sˈi");
         assert_eq!(pronounces("CLI"), "sˈi ˈɛl ˌI");
         assert_eq!(pronounces("CLIs"), "sˈi ˈɛl ˈIz");
         assert_eq!(pronounces("Cloudflare"), "klˈWd flˈɛɹ");
+        assert_eq!(pronounces("CMUdict"), "sˈi ˈɛm jˈu dˌɪkt");
         assert_eq!(pronounces("CoreAudio"), "kˈɔɹ ˈɔdiO");
         assert_eq!(pronounces("CoreML"), "kˈɔɹ ˈɛm ˈɛl");
+        assert_eq!(pronounces("CPU"), "sˈi pˈi jˈu");
         assert_eq!(pronounces("CPAL"), "sˈi pˈi ˈA ˈɛl");
         assert_eq!(pronounces("CRDT"), "sˈi ˈɑɹ dˈi tˈi");
         assert_eq!(pronounces("CRDTs"), "sˈi ˈɑɹ dˈi tˈiz");
@@ -1038,15 +1065,18 @@ mod tests {
         assert_eq!(pronounces("demultiplex"), "dˌimˈʌltɪplɛks");
         assert_eq!(pronounces("DFT"), "dˈi ˈɛf tˈi");
         assert_eq!(pronounces("DTLS"), "dˈi tˈi ˈɛl ˈɛs");
+        assert_eq!(pronounces("DType"), "dˈi tˈIp");
         assert_eq!(pronounces("DuckDB"), "dˈʌk dˈi bˈi");
         assert_eq!(pronounces("esbuild"), "ˈi ˈɛs bˌɪld");
         assert_eq!(pronounces("ESLint"), "ˈi ˈɛs lˌɪnt");
         assert_eq!(pronounces("espeak"), "ˈi spˌik");
         assert_eq!(pronounces("FastAPI"), "fˈæst ˈA pˈi ˌI");
+        assert_eq!(pronounces("FFT"), "ˈɛf ˈɛf tˈi");
         assert_eq!(pronounces("FLAC"), "flˈæk");
         assert_eq!(pronounces("GGUF"), "ʤˈi ʤˈi jˈu ˈɛf");
         assert_eq!(pronounces("gRPC"), "ʤˈi ˈɑɹ pˈi sˈi");
         assert_eq!(pronounces("GPT"), "ʤˈi pˈi tˈi");
+        assert_eq!(pronounces("GPU"), "ʤˈi pˈi jˈu");
         assert_eq!(pronounces("ChatGPT"), "ʧˈæt ʤˈi pˈi tˈi");
         assert_eq!(pronounces("HTTP"), "ˈAʧ tˈi tˈi pˈi");
         assert_eq!(pronounces("HTTPS"), "ˈAʧ tˈi tˈi pˈi ˈɛs");
@@ -1060,6 +1090,7 @@ mod tests {
         assert_eq!(pronounces("IDB"), "ˌI dˈi bˈi");
         assert_eq!(pronounces("iframe"), "ˌI fɹˌAm");
         assert_eq!(pronounces("iOS"), "ˈI ˈO ˈɛs");
+        assert_eq!(pronounces("IPA"), "ˌI pˈi ˈA");
         assert_eq!(pronounces("IndexedDB"), "ˈɪndɛkst dˈi bˈi");
         assert_eq!(pronounces("IPC"), "ˌI pˈi sˈi");
         assert_eq!(pronounces("ipykernel"), "ˈI pˈI kˌɜɹnᵊl");
@@ -1081,8 +1112,13 @@ mod tests {
         assert_eq!(pronounces("Kokoro-82M"), "kˈOkəɹO ˈATi tˈu ˈɛm");
         assert_eq!(pronounces("Kubernetes"), "kˌubəɹnˈɛtiz");
         assert_eq!(pronounces("kubectl"), "kjˈub kˈʌdᵊl");
+        assert_eq!(pronounces("KV"), "kˈA vˈi");
+        assert_eq!(pronounces("KV-cache"), "kˈA vˈi kˌæʃ");
+        assert_eq!(pronounces("KV-caching"), "kˈA vˈi kˌæʃɪŋ");
         assert_eq!(pronounces("LaTeX"), "lˈA tˌɛk");
         assert_eq!(pronounces("LFS"), "ˈɛl ˈɛf ˈɛs");
+        assert_eq!(pronounces("LLM"), "ˈɛl ˈɛl ˈɛm");
+        assert_eq!(pronounces("LLMs"), "ˈɛl ˈɛl ˈɛmz");
         assert_eq!(pronounces("LSTM"), "ˈɛl ˈɛs tˈi ˈɛm");
         assert_eq!(pronounces("macOS"), "mˈæk ˈO ˈɛs");
         assert_eq!(pronounces("Matplotlib"), "mˈæt plˌɑt lˌɪb");
@@ -1093,6 +1129,7 @@ mod tests {
         assert_eq!(pronounces("micropip"), "mˈIkɹO pˌɪp");
         assert_eq!(pronounces("MIMEBundle"), "mˈIm bˌʌndᵊl");
         assert_eq!(pronounces("MLX"), "ˈɛm ˈɛl ˈɛks");
+        assert_eq!(pronounces("ML"), "ˈɛm ˈɛl");
         assert_eq!(pronounces("mmap"), "ˈɛm mˌæp");
         assert_eq!(pronounces("MSW"), "ˈɛm ˈɛs dˈʌbᵊlju");
         assert_eq!(pronounces("mypy"), "mˈI pˌI");
@@ -1103,6 +1140,7 @@ mod tests {
         assert_eq!(pronounces("Next.js"), "nˈɛkst ʤˈA ˈɛs");
         assert_eq!(pronounces("NextJS"), "nˈɛkst ʤˈA ˈɛs");
         assert_eq!(pronounces("nginx"), "ˈɛnʤən ˌɛks");
+        assert_eq!(pronounces("NLP"), "ˈɛn ˈɛl pˈi");
         assert_eq!(pronounces("Node.js"), "nˈOd ʤˈA ˈɛs");
         assert_eq!(pronounces("NodeJS"), "nˈOd ʤˈA ˈɛs");
         assert_eq!(pronounces("nteract"), "ˈɛntəɹˌækt");
@@ -1115,9 +1153,12 @@ mod tests {
         assert_eq!(pronounces("openai-codex"), "ˌOpᵊn ˈAˌI kˈOdˌɛks");
         assert_eq!(pronounces("OpenAPI"), "ˈOpᵊn ˈA pˈi ˌI");
         assert_eq!(pronounces("OPFS"), "ˈO pˈi ˈɛf ˈɛs");
+        assert_eq!(pronounces("OOV"), "ˈO ˈO vˈi");
         assert_eq!(pronounces("Outerbounds"), "ˈWTəɹ bˈWndz");
         assert_eq!(pronounces("outputIdChanges"), "ˈWtpˌʊt ˌI dˌi ʧˈAnʤᵻz");
+        assert_eq!(pronounces("PLBERT"), "pˈi ˈɛl bˈɜɹt");
         assert_eq!(pronounces("pnpm"), "pˈi ˈɛn pˈi ˈɛm");
+        assert_eq!(pronounces("POS"), "pˈi ˈO ˈɛs");
         assert_eq!(pronounces("Postgres"), "pˈOstɡɹɛs");
         assert_eq!(pronounces("PostgreSQL"), "pˈOst ɡɹˈɛs kjˈu ˈɛl");
         assert_eq!(pronounces("PCM"), "pˈi sˈi ˈɛm");
@@ -1162,6 +1203,7 @@ mod tests {
         assert_eq!(pronounces("SSR"), "ˈɛs ˈɛs ˈɑɹ");
         assert_eq!(pronounces("STFT"), "ˈɛs tˈi ˈɛf tˈi");
         assert_eq!(pronounces("STT"), "ˈɛs tˈi tˈi");
+        assert_eq!(pronounces("StyleTTS"), "stˈIl tˈi tˈi ˈɛs");
         assert_eq!(pronounces("Supabase"), "sˈupə bˌAs");
         assert_eq!(pronounces("SWC"), "ˈɛs dˈʌbᵊlju sˈi");
         assert_eq!(pronounces("TailwindCSS"), "tˈAl wˈɪnd sˈi ˈɛs ˈɛs");
